@@ -3,8 +3,5 @@ test/
 target/
 .vscode/
 *.ptx
-data/*
-!data/static/*
-!data/test_data/*
 imgui.ini
 framework/static.h
