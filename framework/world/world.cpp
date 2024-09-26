@@ -93,6 +93,8 @@ bool World::LoadScene(std::filesystem::path scene_file_path) noexcept {
     for (auto &ro : m_ros) {
         if (ro->geo.type == Pupil::optix::Geometry::EType::TriMesh) {
             tri_num += ro->geo.tri_mesh.positions.GetNum() / 3;
+        } else if (ro->geo.type == Pupil::optix::Geometry::EType::ThreeDimGaussian) {
+            tri_num += ro->geo.threedgs.positions.GetNum() / 3;
         }
     }
     Pupil::Log::Info("Scene triangles num: {}", tri_num);
@@ -121,6 +123,7 @@ bool World::LoadScene(resource::Scene *scene) noexcept {
 
     m_ros.clear();
     m_ros.reserve(scene->shape_instances.size());
+
 
     emitters->Clear();
     size_t emitter_offset = 0;

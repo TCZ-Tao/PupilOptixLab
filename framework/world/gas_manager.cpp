@@ -150,7 +150,35 @@ void GAS::Create() noexcept {
         // d_temp_mem0 = d_vertex;
         // d_temp_mem1 = d_width;
         // d_temp_mem2 = d_index;
-    } else {
+    } else if (ref_shape->type == resource::EShapeType::_3dgs) { // 3dgs bounding mesh
+        unsigned int vertex_num = ref_shape->threedgs.vertex_num;
+        unsigned int index_triplets_num = ref_shape->threedgs.face_num;
+        //Pupil::Log::Info("shape->threedgs size: vertex_num {}, face_num {}", 
+        //    vertex_num, index_triplets_num);
+
+        CUdeviceptr d_vertex = device_memory.position;
+        CUdeviceptr d_index = device_memory.index;
+
+        unsigned int sbt_index = 0;
+        CUdeviceptr d_sbt_index = Pupil::cuda::CudaMemcpyToDevice(&sbt_index, sizeof(sbt_index));
+
+        input.type = OPTIX_BUILD_INPUT_TYPE_TRIANGLES;
+        input.triangleArray = {
+            .vertexBuffers = &d_vertex,
+            .numVertices = vertex_num,
+            .vertexFormat = OPTIX_VERTEX_FORMAT_FLOAT3,
+            .vertexStrideInBytes = sizeof(float) * 3,
+            .indexBuffer = d_index,
+            .numIndexTriplets = index_triplets_num,
+            .indexFormat = OPTIX_INDICES_FORMAT_UNSIGNED_INT3,
+            .indexStrideInBytes = sizeof(unsigned int) * 3,
+            .flags = &input_flag,
+            .numSbtRecords = 1,
+            .sbtIndexOffsetBuffer = d_sbt_index,
+            .sbtIndexOffsetSizeInBytes = sizeof(sbt_index),
+            .sbtIndexOffsetStrideInBytes = sizeof(sbt_index),
+        };
+    } else { // trimesh
         unsigned int vertex_num = ref_shape->mesh.vertex_num;
         // CUdeviceptr d_vertex = cuda::CudaMemcpyToDevice(ref_shape->mesh.positions, sizeof(float) * 3 * vertex_num);
         unsigned int index_triplets_num = ref_shape->mesh.face_num;
@@ -188,7 +216,9 @@ void GAS::Create() noexcept {
 
     auto context = Pupil::util::Singleton<Pupil::optix::Context>::instance();
     OptixAccelBuildOptions accel_options{};
-    accel_options.buildFlags = OPTIX_BUILD_FLAG_ALLOW_COMPACTION | OPTIX_BUILD_FLAG_PREFER_FAST_TRACE | OPTIX_BUILD_FLAG_ALLOW_RANDOM_VERTEX_ACCESS;
+    accel_options.buildFlags = OPTIX_BUILD_FLAG_ALLOW_COMPACTION | 
+        OPTIX_BUILD_FLAG_PREFER_FAST_TRACE | 
+        OPTIX_BUILD_FLAG_ALLOW_RANDOM_VERTEX_ACCESS;
     accel_options.operation = OPTIX_BUILD_OPERATION_BUILD;
 
     OptixAccelBufferSizes gas_buffer_sizes{};

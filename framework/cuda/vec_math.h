@@ -371,6 +371,11 @@ CUDA_INLINE CUDA_HOSTDEVICE void operator+=(float3 &a, const float3 &b) {
     a.y += b.y;
     a.z += b.z;
 }
+CUDA_INLINE CUDA_HOSTDEVICE void operator+=(float3 &a, const float &s) {
+    a.x += s;
+    a.y += s;
+    a.z += s;
+}
 /** @} */
 
 /** subtract 

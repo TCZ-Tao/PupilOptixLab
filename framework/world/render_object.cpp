@@ -47,6 +47,32 @@ void RenderObject::Reset(const resource::Shape *shape) noexcept {
             util::Singleton<resource::ShapeManager>::instance()->GetMeshDeviceMemory(shape);
         geo.curve.positions.SetData(device_memory.position, shape->hair.point_num * 3);
         geo.curve.indices.SetData(device_memory.index, shape->hair.segments_num);
+
+    } else if (shape->type == resource::EShapeType::_3dgs) {
+        geo.type = optix::Geometry::EType::ThreeDimGaussian;
+        auto device_memory =
+            util::Singleton<resource::ShapeManager>::instance()->GetMeshDeviceMemory(shape);
+        uint32_t vertex_num = shape->threedgs.vertex_num;
+        uint32_t face_num = shape->threedgs.face_num;
+        geo.threedgs.positions.SetData(device_memory.position, vertex_num * 3);
+        geo.threedgs.indices.SetData(device_memory.index, face_num * 3);
+        sub_emitters_num = face_num;
+        //Pupil::Log::Info("bouding_mesh device_memory size: positions {}, indices {}", 
+        //    vertex_num * 3, face_num * 3);
+
+        auto threedgs_device_memory =
+            util::Singleton<resource::ShapeManager>::instance()->Get3dgsDeviceMemory(shape);
+        uint32_t point_num = shape->threedgs.point_num;
+        geo.threedgs.pt_positions.SetData(
+            threedgs_device_memory.position, point_num * PLY_3DGS_NUM_POS);
+        geo.threedgs.shses.SetData(
+            threedgs_device_memory.shs, point_num * PLY_3DGS_NUM_SHS);
+        geo.threedgs.opacities.SetData(
+            threedgs_device_memory.opacity, point_num * PLY_3DGS_NUM_OPA);
+        geo.threedgs.scales.SetData(
+            threedgs_device_memory.scale, point_num * PLY_3DGS_NUM_SCALE);
+        geo.threedgs.rotations.SetData(
+            threedgs_device_memory.rotation, point_num * PLY_3DGS_NUM_ROT);
     } else {
         geo.type = optix::Geometry::EType::TriMesh;
         auto device_memory =

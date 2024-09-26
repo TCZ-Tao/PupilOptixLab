@@ -173,7 +173,7 @@ Pipeline::Pipeline(const PipelineDesc &desc) noexcept {
         // parameters to optixPipelineSetStackSize.
         OptixStackSizes stack_sizes = {};
         for (auto i = 0u; i < m_programs.size(); ++i) {
-            OPTIX_CHECK(optixUtilAccumulateStackSizes(m_programs[i], &stack_sizes));
+            OPTIX_CHECK(optixUtilAccumulateStackSizes(m_programs[i], &stack_sizes, m_pipeline));
         }
 
         unsigned int max_trace_depth = desc.max_trace_depth;

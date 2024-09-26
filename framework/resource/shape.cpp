@@ -151,6 +151,21 @@ struct ShapeLoader<EShapeType::_obj> {
 };
 
 template<>
+struct ShapeLoader<EShapeType::_3dgs> {
+    ShapeInstance operator()(const xml::Object *obj, Scene *scene) {
+        Pupil::Log::Info("into 3dgs loader");
+        auto value = obj->GetProperty("filename");
+        auto path = (scene->scene_root_path / value).make_preferred();
+
+        ShapeInstance ins;
+        ins.name = obj->id;
+        ins.shape = util::Singleton<ShapeManager>::instance()->Load3dgs(path.string());
+
+        return ins;
+    }
+};
+
+template<>
 struct ShapeLoader<EShapeType::_hair> {
     ShapeInstance operator()(const xml::Object *obj, Scene *scene) {
         auto value = obj->GetProperty("filename");
@@ -238,7 +253,8 @@ ShapeInstance LoadShapeInstanceFromXml(const xml::Object *obj, Scene *scene) noe
             ShapeInstance shape_ins = S_SHAPE_LOADER[i](obj, scene);
 
             auto bsdf_obj = obj->GetUniqueSubObject("bsdf");
-            scene->LoadXmlObj(bsdf_obj, &shape_ins.mat);
+            scene->LoadXmlObj(bsdf_obj, &shape_ins.mat); // todo:3dgs分支去掉材质的载入
+
             auto transform_obj = obj->GetUniqueSubObject("transform");
             util::Transform transform;
             scene->LoadXmlObj(transform_obj, &transform);
@@ -327,7 +343,9 @@ void ShapeManager::LoadShapeFromFile(std::string_view file_path) noexcept {
 }
 
 ShapeManager::MeshDeviceMemory ShapeManager::GetMeshDeviceMemory(const Shape *shape) noexcept {
-    if (shape->type == EShapeType::_obj || shape->type == EShapeType::_hair) {
+    if (shape->type == EShapeType::_obj 
+        || shape->type == EShapeType::_hair 
+        || shape->type == EShapeType::_3dgs) {
         if (m_meshes.find(shape->file_path) != m_meshes.end())
             return m_meshes[shape->file_path]->device_memory;
     } else if (shape->type == EShapeType::_cube) {
@@ -336,8 +354,15 @@ ShapeManager::MeshDeviceMemory ShapeManager::GetMeshDeviceMemory(const Shape *sh
         return GetRectDeviceMemory();
     } else if (shape->type == EShapeType::_sphere) {
         return GetSphereDeviceMemory();
-    }
+    } 
     return {};
+}
+
+// acquire additional device buffer for 3dgs todo:要不也放到loader那里？
+PlyLoader::ThreedgsDeviceMemory ShapeManager::Get3dgsDeviceMemory(const Shape *shape) noexcept {
+    auto loader = util::Singleton<resource::PlyLoader>::instance();
+    if (loader->m_3dgs_data.find(shape->file_path) != loader->m_3dgs_data.end())
+        return loader->m_3dgs_data[shape->file_path]->device_memory;
 }
 
 Shape *ShapeManager::LoadMeshShape(std::string_view file_path) noexcept {
@@ -360,6 +385,56 @@ Shape *ShapeManager::LoadMeshShape(std::string_view file_path) noexcept {
     shape->mesh.texcoords = it->second->texcoords.size() > 0 ? it->second->texcoords.data() : nullptr;
     shape->mesh.indices = it->second->indices.data();
     shape->aabb = it->second->aabb;
+
+    m_mesh_shape[file_path.data()] = shape.get();
+    m_id_shapes[id] = std::move(shape);
+    return m_id_shapes[id].get();
+}
+
+Shape *ShapeManager::Load3dgs(std::string_view file_path) noexcept {
+    if (m_meshes.find(file_path) != m_meshes.end()) { // check if the file is already loaded
+        return m_mesh_shape[file_path.data()];
+    }
+    auto loader = util::Singleton<resource::PlyLoader>::instance();
+    loader->LoadFromFile(file_path);
+
+    //# Load bounding mesh here for Shape
+    // copy from loader to m_meshes 感觉又拷一遍有点没必要
+    auto bounding_mesh = std::make_unique<MeshData>();
+    bounding_mesh->positions.reserve(loader->boundMeshPos_vec.size());
+    for (int i = 0; i < loader->boundMeshPos_vec.size(); ++i)
+        bounding_mesh->positions.push_back(loader->boundMeshPos_vec[i]);
+    bounding_mesh->indices.reserve(loader->boundMeshIdx_vec.size());
+    for (int i = 0; i < loader->boundMeshIdx_vec.size(); ++i)
+        bounding_mesh->indices.push_back(loader->boundMeshIdx_vec[i]);
+    //Pupil::Log::Info("bouding_mesh size: positions {}, indices {}", 
+    //    bounding_mesh->positions.size(), bounding_mesh->indices.size());
+
+    bounding_mesh->device_memory.position = 
+        cuda::CudaMemcpyToDevice(bounding_mesh->positions.data(), 
+            bounding_mesh->positions.size() * sizeof(float));
+    bounding_mesh->device_memory.normal = 0;
+    bounding_mesh->device_memory.index = 
+        cuda::CudaMemcpyToDevice(bounding_mesh->indices.data(), 
+            bounding_mesh->indices.size() * sizeof(uint32_t));
+    bounding_mesh->device_memory.texcoord = 0;
+    bounding_mesh->aabb = loader->aabb;
+    m_meshes.emplace(file_path, std::move(bounding_mesh));
+
+    auto mesh_dictItem = m_meshes.find(file_path);
+
+    auto id = m_shape_id_cnt++;
+    auto shape = std::make_unique<Shape>();
+    shape->id = id;
+    shape->file_path = file_path;
+    shape->type = EShapeType::_3dgs;
+    shape->threedgs.vertex_num = static_cast<uint32_t>(mesh_dictItem->second->positions.size() / 3);
+    shape->threedgs.face_num = static_cast<uint32_t>(mesh_dictItem->second->indices.size() / 3);
+    shape->threedgs.positions = mesh_dictItem->second->positions.data();
+    shape->threedgs.indices = mesh_dictItem->second->indices.data();
+    shape->aabb = mesh_dictItem->second->aabb;
+
+    shape->threedgs.point_num = loader->header.numVertices;
 
     m_mesh_shape[file_path.data()] = shape.get();
     m_id_shapes[id] = std::move(shape);

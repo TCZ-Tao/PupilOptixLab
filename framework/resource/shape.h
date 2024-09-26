@@ -17,6 +17,8 @@
 #include <unordered_map>
 #include <array>
 
+#include "3dgs/ply_loader.h"
+
 namespace Pupil::resource {
 
 class Scene;
@@ -26,7 +28,7 @@ struct Object;
 }
 
 #define PUPIL_SCENE_SHAPE \
-    obj, sphere, cube, rectangle, hair
+    obj, sphere, cube, rectangle, hair, 3dgs
 
 PUPIL_ENUM_DEFINE(EShapeType, PUPIL_SCENE_SHAPE)
 PUPIL_ENUM_STRING_ARRAY(S_SHAPE_TYPE_NAME, PUPIL_SCENE_SHAPE)
@@ -70,6 +72,22 @@ struct Hair {
     uint32_t *strands_index;
 };
 
+struct Threedgs {
+    uint32_t vertex_num;
+    uint32_t face_num;
+
+    uint32_t point_num;
+    
+    float *positions; // pointer to MeshData
+    uint32_t *indices;
+
+    float *pt_positions;
+    float *shses;
+    float *opacities;
+    float *scales;
+    float *rotations;
+};
+
 struct Shape {
     uint32_t id;
     std::string file_path;
@@ -79,6 +97,7 @@ struct Shape {
         Mesh mesh;
         Sphere sphere{};
         Hair hair;
+        Threedgs threedgs;
     };
 
     util::AABB aabb{};
@@ -109,17 +128,20 @@ public:
         CUdeviceptr texcoord = 0;
     };
 
+
     ShapeManager() noexcept = default;
 
     void LoadShapeFromFile(std::string_view) noexcept;
 
     Shape *LoadMeshShape(std::string_view) noexcept;
+    Shape *Load3dgs(std::string_view) noexcept;
     Shape *LoadSphere(bool flip_normals = false) noexcept;
     Shape *LoadCube(bool flip_normals = false) noexcept;
     Shape *LoadRectangle(bool flip_normals = false) noexcept;
     Shape *LoadHair(std::string_view, float width, bool tapered = false, uint8_t mode = 2) noexcept;
 
     MeshDeviceMemory GetMeshDeviceMemory(const Shape *) noexcept;
+    PlyLoader::ThreedgsDeviceMemory Get3dgsDeviceMemory(const Shape *) noexcept;
 
     Shape *GetShape(uint32_t) noexcept;
 

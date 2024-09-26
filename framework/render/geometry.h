@@ -31,6 +31,18 @@ struct Curve {
     cuda::ConstArrayView<unsigned int> indices;
 };
 
+struct Threedgs {
+    cuda::ConstArrayView<float3> positions;
+    cuda::ConstArrayView<uint3> indices;
+
+    cuda::ConstArrayView<float3> pt_positions;
+    cuda::ConstArrayView<float> opacities;
+    cuda::ConstArrayView<float3> scales;
+    cuda::ConstArrayView<float4> rotations;
+    cuda::ConstArrayView<float> shses;// 没现成结构了，先就这样吧
+};
+
+
 struct LocalGeometry {
     float3 position;
     float3 normal;
@@ -45,18 +57,24 @@ struct Geometry {
         LinearBSpline,
         QuadraticBSpline,
         CubicBSpline,
-        CatromSpline
+        CatromSpline,
+
+        ThreeDimGaussian
     } type;
 
     union {
         TriMesh tri_mesh;
         Sphere sphere;
         Curve curve;
+        Threedgs threedgs;
     };
 
     CUDA_HOSTDEVICE Geometry() noexcept {}
 
 #ifdef PUPIL_OPTIX
+    CUDA_DEVICE bool Is3dgs() const noexcept {
+        return type == EType::ThreeDimGaussian;
+    }
     CUDA_DEVICE void GetHitLocalGeometry(LocalGeometry &ret) const noexcept {
         switch (type) {
             case EType::TriMesh: {
@@ -90,6 +108,22 @@ struct Geometry {
                     ret.texcoord = (1.f - bary.x - bary.y) * t0 + bary.x * t1 + bary.y * t2;
                     if (tri_mesh.flip_tex_coords) ret.texcoord.y = 1.f - ret.texcoord.y;
                 }
+            } break;
+            case EType::ThreeDimGaussian: {
+                const auto face_index = optixGetPrimitiveIndex();
+                const auto bary = optixGetTriangleBarycentrics();
+                // const auto vertex_index = make_uint3(face_index * 3 + 0, face_index * 3 + 1, face_index * 3 + 2);
+                const auto [v0, v1, v2] = threedgs.indices[face_index];
+
+                const auto p0 = threedgs.positions[v0];
+                const auto p1 = threedgs.positions[v1];
+                const auto p2 = threedgs.positions[v2];
+                ret.position = (1.f - bary.x - bary.y) * p0 + bary.x * p1 + bary.y * p2;
+                ret.position = optixTransformPointFromObjectToWorldSpace(ret.position);
+
+                ret.normal = cross(p1 - p0, p2 - p0);
+                ret.normal = normalize(optixTransformNormalFromObjectToWorldSpace(ret.normal));
+                if (tri_mesh.flip_normals) ret.normal *= -1.f;
             } break;
             case EType::Sphere: {
                 ret.position = optixGetWorldRayOrigin() + optixGetRayTmax() * optixGetWorldRayDirection();

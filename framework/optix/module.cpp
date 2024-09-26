@@ -91,7 +91,8 @@ void ModuleManager::Clear() noexcept {
 Module::Module(OptixDeviceContext context, OptixPrimitiveType builtin_type) noexcept {
     OptixModuleCompileOptions module_compile_options{
         .optLevel = OPTIX_COMPILE_OPTIMIZATION_LEVEL_3,
-        .debugLevel = OPTIX_COMPILE_DEBUG_LEVEL_MINIMAL
+        //.debugLevel = OPTIX_COMPILE_DEBUG_LEVEL_MINIMAL
+        .debugLevel = OPTIX_COMPILE_DEBUG_LEVEL_MODERATE
     };
 
     OptixBuiltinISOptions options{ .builtinISModuleType = builtin_type };
@@ -106,10 +107,11 @@ Module::Module(OptixDeviceContext context, OptixPrimitiveType builtin_type) noex
 Module::Module(OptixDeviceContext context, std::string_view embedded_ptx_code) noexcept {
     OptixModuleCompileOptions module_compile_options{
         .optLevel = OPTIX_COMPILE_OPTIMIZATION_LEVEL_3,
-        .debugLevel = OPTIX_COMPILE_DEBUG_LEVEL_MINIMAL
+        //.debugLevel = OPTIX_COMPILE_DEBUG_LEVEL_MINIMAL
+        .debugLevel = OPTIX_COMPILE_DEBUG_LEVEL_MODERATE // for nsight compute
     };
 
-    OPTIX_CHECK_LOG(optixModuleCreateFromPTX(
+    OPTIX_CHECK_LOG(optixModuleCreate(
         context,
         &module_compile_options,
         &Pipeline::pipeline_compile_options,
