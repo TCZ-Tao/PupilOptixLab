@@ -130,7 +130,12 @@ bool World::LoadScene(resource::Scene *scene) noexcept {
     for (size_t index = 0; index < scene->shape_instances.size(); ++index) {
         auto &ins = scene->shape_instances[index];
         if (!ins.shape || ins.shape->type == resource::EShapeType::_unknown) continue;
-        m_ros.emplace_back(std::make_unique<RenderObject>(ins));
+
+        //m_ros.emplace_back(std::make_unique<RenderObject>(ins));
+        if (ins.shape->type == resource::EShapeType::_3dgs)
+            m_ros.emplace_back(std::make_unique<RenderObject>(ins, Pupil::optix::VISIBILITY_MASK_GAUSSIAN));
+        else m_ros.emplace_back(std::make_unique<RenderObject>(ins, Pupil::optix::VISIBILITY_MASK_COMMON));
+
         m_ro_in_scene_index[m_ros.back().get()] = index;
 
         if (ins.is_emitter) {

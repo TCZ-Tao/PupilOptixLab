@@ -2,6 +2,7 @@
 set(3rdparty_folder third-party)
 
 add_library(${3rdparty_target} SHARED dummy.cpp)
+
 set_target_properties(${3rdparty_target} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 # ########################################################
@@ -61,3 +62,6 @@ add_sub_target(spdlog spdlog ${3rdparty_folder} "")
 
 add_sub_target(exr tinyexr ${3rdparty_folder}/tinyexr "")
 set_ide_folder(miniz ${3rdparty_folder}/tinyexr)
+
+set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "" FORCE)
+add_sub_target(glm glm ${3rdparty_folder} "")

@@ -18,7 +18,7 @@ RenderObject::RenderObject(const resource::ShapeInstance &ins, unsigned int v_ma
 void RenderObject::Reset(const resource::Shape *shape) noexcept {
     auto gas_mngr = util::Singleton<GASManager>::instance();
     auto [new_gas, is_reuse] = gas_mngr->RefGAS(shape);
-    if (is_reuse) new_gas->Create();
+    //if (is_reuse) new_gas->Create();//? 为什么又调一次create
 
     gas_mngr->Release(gas);
     gas = new_gas;

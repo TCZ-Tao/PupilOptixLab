@@ -11,6 +11,10 @@
 #endif
 
 namespace Pupil::optix {
+
+const unsigned int VISIBILITY_MASK_COMMON = 0x01;
+const unsigned int VISIBILITY_MASK_GAUSSIAN = 0x02; //0010
+
 struct TriMesh {
     cuda::ConstArrayView<float3> positions;
     cuda::ConstArrayView<float3> normals;
