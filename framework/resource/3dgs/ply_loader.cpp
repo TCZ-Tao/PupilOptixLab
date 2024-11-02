@@ -151,18 +151,23 @@ void PlyLoader::CreateBounding(std::string_view file_path) {
                                   point_data->second->rotation_vec[i * PLY_3DGS_NUM_ROT + 2],
                                   point_data->second->rotation_vec[i * PLY_3DGS_NUM_ROT + 3]);
             Pupil::util::Mat4 rotate;
-            rotate.re[0][0] = 1 - 2 * q.y*q.y - 2 * q.z*q.z;
-            rotate.re[0][1] = 2 * q.x * q.y - 2 * q.z * q.w;
-            rotate.re[0][2] = 2 * q.x * q.z + 2 * q.y * q.w;
-            rotate.re[1][0] = 2 * q.x * q.y + 2 * q.z * q.w;
-            rotate.re[1][1] = 1 - 2 * q.x*q.x - 2 * q.z*q.z;
-            rotate.re[1][2] = 2 * q.y * q.z - 2 * q.x * q.w;
-            rotate.re[2][0] = 2 * q.x * q.z - 2 * q.y * q.w;
-            rotate.re[2][1] = 2 * q.y * q.z + 2 * q.x * q.w;
-            rotate.re[2][2] = 1 - 2 * q.x*q.x - 2 * q.y*q.y;
+            float r = q.x;
+            float x = q.y;
+            float y = q.z;
+            float z = q.w;
+            rotate.re[0][0] = 1.f - 2.f * (y * y - z * z);
+            rotate.re[0][1] = 2.f * (x * y - z * r);
+            rotate.re[0][2] = 2.f * (x * z + y * r);
+            rotate.re[1][0] = 2.f * (x * y - z * r);
+            rotate.re[1][1] = 1.f - 2.f * (x * x + z * z);
+            rotate.re[1][2] = 2.f * (y * z - x * r);
+            rotate.re[2][0] = 2.f * (x * z - y * r);
+            rotate.re[2][1] = 2.f * (y * z + x * r);
+            rotate.re[2][2] = 1.f - 2.f * (x * x + y * y);
             rotate.re[3][3] = 1.f;
 
-            Pupil::util::Mat4 scale(point_data->second->scale_vec[i * PLY_3DGS_NUM_SCALE], 0.f, 0.f, 0.f, 
+            Pupil::util::Mat4 scale(
+                point_data->second->scale_vec[i * PLY_3DGS_NUM_SCALE], 0.f, 0.f, 0.f, 
                 0.f, point_data->second->scale_vec[i * PLY_3DGS_NUM_SCALE + 1], 0.f, 0.f, 
                 0.f, 0.f, point_data->second->scale_vec[i * PLY_3DGS_NUM_SCALE + 2], 0.f, 
                 0.f, 0.f, 0.f, 1.f);
