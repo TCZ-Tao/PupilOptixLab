@@ -60,6 +60,11 @@ struct Float4 {
     inline Float4 operator*(float t) const noexcept { return { x * t, y * t, z * t, w * t }; }
     inline Float4 operator/(float t) const noexcept { return *this * (1.f / t); }
 
+    inline Float4 &operator*=(const float t) noexcept {
+        *this = *this * t;
+        return *this;
+    }
+
     inline Float4 &operator+=(const Float4 &t) noexcept {
         *this = *this + t;
         return *this;
@@ -68,6 +73,7 @@ struct Float4 {
         *this = *this - t;
         return *this;
     }
+
 };
 
 struct Mat4 {
@@ -109,5 +115,12 @@ struct Mat4 {
     }
 
     Mat4 GetTranspose() const noexcept { return DirectX::XMMatrixTranspose(dx_mat); }
+
+    void Print() const noexcept {
+        printf("%f,%f,%f,%f\n", r0.x, r0.y, r0.z, r0.w);
+        printf("%f,%f,%f,%f\n", r1.x, r1.y, r1.z, r1.w);
+        printf("%f,%f,%f,%f\n", r2.x, r2.y, r2.z, r2.w);
+        printf("%f,%f,%f,%f\n", r3.x, r3.y, r3.z, r3.w);
+    }
 };
 }// namespace Pupil::util

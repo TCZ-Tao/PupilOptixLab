@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include "vec_math.h"
 
 struct mat3x3 {
@@ -11,6 +12,12 @@ CUDA_INLINE CUDA_HOSTDEVICE mat3x3 transpose(const mat3x3 &m) noexcept {
     ret.r1 = make_float3(m.r0.y, m.r1.y, m.r2.y);
     ret.r2 = make_float3(m.r0.z, m.r1.z, m.r2.z);
     return ret;
+}
+
+CUDA_INLINE CUDA_HOSTDEVICE mat3x3 make_mat3x3(const float e0, const float e1, const float e2,
+    const float e3, const float e4, const float e5, 
+    const float e6, const float e7, const float e8) noexcept {
+    return mat3x3{ make_float3(e0, e1, e2), make_float3(e3, e4, e5), make_float3(e6, e7, e8) };
 }
 
 CUDA_INLINE CUDA_HOSTDEVICE mat3x3 make_mat3x3(const float3 &v) noexcept {
@@ -38,6 +45,13 @@ CUDA_INLINE CUDA_HOSTDEVICE mat3x3 operator*(const mat3x3 &m, const mat3x3 &m2) 
     ret.r2.z = dot(m.r2, make_float3(m2.r0.z, m2.r1.z, m2.r2.z));
     return ret;
 }
+
+CUDA_INLINE CUDA_HOSTDEVICE void PrintMat3(const mat3x3 &m) noexcept {
+    printf("%f,%f,%f\n", m.r0.x, m.r0.y, m.r0.z);
+    printf("%f,%f,%f\n", m.r1.x, m.r1.y, m.r1.z);
+    printf("%f,%f,%f\n", m.r2.x, m.r2.y, m.r2.z);
+}
+
 
 struct mat4x4 {
     float4 r0, r1, r2, r3;
@@ -75,4 +89,11 @@ CUDA_INLINE CUDA_HOSTDEVICE mat4x4 operator*(const mat4x4 &m, const mat4x4 &m2) 
     ret.r3.z = dot(m.r3, make_float4(m2.r0.z, m2.r1.z, m2.r2.z, m2.r3.z));
     ret.r3.w = dot(m.r3, make_float4(m2.r0.w, m2.r1.w, m2.r2.w, m2.r3.w));
     return ret;
+}
+
+CUDA_INLINE CUDA_HOSTDEVICE void PrintMat4(const mat4x4 &m) noexcept {
+    printf("%f,%f,%f,%f\n", m.r0.x, m.r0.y, m.r0.z, m.r0.w);
+    printf("%f,%f,%f,%f\n", m.r1.x, m.r1.y, m.r1.z, m.r1.w);
+    printf("%f,%f,%f,%f\n", m.r2.x, m.r2.y, m.r2.z, m.r2.w);
+    printf("%f,%f,%f,%f\n", m.r3.x, m.r3.y, m.r3.z, m.r3.w);
 }

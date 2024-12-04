@@ -166,6 +166,9 @@ void PlyLoader::CreateBounding(std::string_view file_path) {
             rotate.re[2][2] = 1.f - 2.f * (x * x + y * y);
             rotate.re[3][3] = 1.f;
 
+            rotate.r1 *= -1.f;
+            rotate.r2 *= -1.f;
+
             Pupil::util::Mat4 scale(
                 point_data->second->scale_vec[i * PLY_3DGS_NUM_SCALE], 0.f, 0.f, 0.f, 
                 0.f, point_data->second->scale_vec[i * PLY_3DGS_NUM_SCALE + 1], 0.f, 0.f, 
